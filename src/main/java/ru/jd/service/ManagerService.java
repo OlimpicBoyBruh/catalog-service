@@ -1,0 +1,205 @@
+package ru.jd.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import ru.jd.mapper.DeviceMapper;
+import ru.jd.mapper.GroupMapper;
+import ru.jd.mapper.OrganizationMapper;
+import ru.jd.mapper.ProductMapper;
+import ru.jd.model.dto.MessageInfo;
+import ru.jd.model.dto.device.GetAllDevicesResponse;
+import ru.jd.model.dto.device.RegistrationDeviceRequest;
+import ru.jd.model.dto.device.RegistrationDeviceResponse;
+import ru.jd.model.dto.device.UpdateGroupDeviceRequest;
+import ru.jd.model.dto.device.UpdateGroupDeviceResponse;
+import ru.jd.model.dto.group.AddProductGroupResponse;
+import ru.jd.model.dto.group.CreateGroupRequest;
+import ru.jd.model.dto.group.CreateGroupResponse;
+import ru.jd.model.dto.organization.AddProductOrganizationRequest;
+import ru.jd.model.dto.organization.AddProductOrganizationResponse;
+import ru.jd.model.dto.organization.CreateOrganizationRequest;
+import ru.jd.model.dto.organization.CreateOrganizationResponse;
+import ru.jd.model.dto.organization.GetAllOrganizationsResponse;
+import ru.jd.model.dto.organization.GetGroupsOrganizationsResponse;
+import ru.jd.model.dto.organization.OrganizationDto;
+import ru.jd.model.entity.Device;
+import ru.jd.model.entity.Group;
+import ru.jd.model.entity.Organization;
+import ru.jd.model.entity.Product;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ManagerService {
+    private final OrganizationService organizationService;
+    private final GroupService groupService;
+    private final ProductService productService;
+    private final DeviceService deviceService;
+    @Value("${path.image}")
+    private String pathStorageImage;
+
+    public CreateOrganizationResponse saveOrganization(CreateOrganizationRequest createOrganizationRequest) {
+        Organization organization = organizationService.saveOrganization(createOrganizationRequest);
+        CreateOrganizationResponse createOrganizationResponse = new CreateOrganizationResponse();
+
+        createOrganizationResponse.setMessageInfo(getMessageInfo(organization.getId()));
+
+        return createOrganizationResponse;
+
+    }
+
+    public GetAllOrganizationsResponse getAllOrganizations() {
+        List<OrganizationDto> organizations = OrganizationMapper.toDto(organizationService.getAllOrganizations());
+        GetAllOrganizationsResponse getAllOrganizationsResponse = new GetAllOrganizationsResponse();
+
+        getAllOrganizationsResponse.setOrganizations(organizations);
+
+        MessageInfo messageInfo = new MessageInfo();
+        messageInfo.setErrorCode(0);
+
+
+        getAllOrganizationsResponse.setMessageInfo(messageInfo);
+        return getAllOrganizationsResponse;
+    }
+
+    public CreateGroupResponse createGroup(CreateGroupRequest createGroupRequest) {
+        Organization organization = organizationService.getReferenceById(createGroupRequest.getOrganizationId());
+        groupService.createGroup(GroupMapper.toEntity(createGroupRequest, organization));
+        CreateGroupResponse createGroupResponse = new CreateGroupResponse();
+
+        createGroupResponse.setMessageInfo(getMessageInfo(organization.getId()));
+
+        return createGroupResponse;
+    }
+
+    public GetGroupsOrganizationsResponse getGroupsOrganizations(Long organizationId) {
+        Organization organization = organizationService.getById(organizationId);
+
+        GetGroupsOrganizationsResponse getGroupsOrganizationsResponse = new GetGroupsOrganizationsResponse();
+        if (organization != null) {
+            getGroupsOrganizationsResponse.setGroups(GroupMapper.toDto(organization.getGroups()));
+
+            getGroupsOrganizationsResponse.setMessageInfo(getMessageInfo(organizationId));
+        } else {
+            throw new RuntimeException("Organization not found");
+        }
+
+        return getGroupsOrganizationsResponse;
+    }
+
+    public AddProductOrganizationResponse addProductToOrganization(Long organizationId,
+                                                                   AddProductOrganizationRequest addProductOrganizationRequest) {
+        Organization organization = organizationService.getReferenceById(organizationId);
+
+
+        Product product = ProductMapper.toEntity(addProductOrganizationRequest, organization
+                , saveImage(addProductOrganizationRequest.getImage()).toString());
+
+        productService.saveProduct(product);
+
+        AddProductOrganizationResponse addProductOrganizationResponse = new AddProductOrganizationResponse();
+
+        addProductOrganizationResponse.setMessageInfo(getMessageInfo(product.getId()));
+
+        return addProductOrganizationResponse;
+    }
+
+    private Path saveImage(MultipartFile image) {
+        Path targetPath = Paths.get(pathStorageImage, image.getOriginalFilename());
+
+        try {
+            image.transferTo(targetPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return targetPath;
+    }
+
+    private static MessageInfo getMessageInfo(Long organizationId) {
+        MessageInfo messageInfo = new MessageInfo();
+
+        messageInfo.setErrorCode(0);
+        messageInfo.setMessageId(organizationId);
+
+        return messageInfo;
+    }
+    private static MessageInfo getMessageInfo(Long organizationId, String message) {
+        MessageInfo messageInfo = new MessageInfo();
+
+        messageInfo.setErrorCode(0);
+        messageInfo.setMessageId(organizationId);
+        messageInfo.setMessage(message);
+
+        return messageInfo;
+    }
+
+
+    public AddProductGroupResponse addProductToGroup(Long productId, Long groupId) {
+        Product product = productService.getProductById(productId);
+
+        Group group = groupService.getReferenceById(groupId);
+        product.getGroups().add(group);
+        productService.saveProduct(product);
+
+        AddProductGroupResponse addProductGroupResponse = new AddProductGroupResponse();
+
+        addProductGroupResponse.setMessageInfo(getMessageInfo(product.getId()));
+
+        return addProductGroupResponse;
+    }
+
+    public RegistrationDeviceResponse registerDevice(RegistrationDeviceRequest request) {
+
+        Organization organization = organizationService.getReferenceById(request.getOrganizationId());
+
+        Device device = DeviceMapper.toEntity(request);
+        device.setOrganization(organization);
+        device = deviceService.saveDevice(device);
+
+        RegistrationDeviceResponse response = new RegistrationDeviceResponse();
+
+        response.setMessageInfo(getMessageInfo(device.getId()));
+
+        return response;
+    }
+
+    public UpdateGroupDeviceResponse updateGroupToDevice(UpdateGroupDeviceRequest request) {
+
+        Organization organization = organizationService.getById(request.getOrganizationId());
+        Device device = deviceService.getDeviceById(request.getDeviceId());
+
+        for (Group group : organization.getGroups()) {
+            if (group.getId().equals(request.getGroupId())) {
+                device.setGroup(group);
+                deviceService.saveDevice(device);
+                UpdateGroupDeviceResponse response = new UpdateGroupDeviceResponse();
+                response.setMessageInfo(getMessageInfo(device.getId()));
+                return response;
+        }
+        }
+        UpdateGroupDeviceResponse response = new UpdateGroupDeviceResponse();
+        response.setMessageInfo(getMessageInfo(device.getId(), "Group not found"));
+        return response;
+    }
+
+    public GetAllDevicesResponse getDevices(Long organizationId) {
+        List<Device> devices = deviceService.getAllDevicesForOrganization(organizationId);
+
+        GetAllDevicesResponse response = new GetAllDevicesResponse();
+
+        response.setDevices(DeviceMapper.toDto(devices));
+        response.setMessageInfo(getMessageInfo(organizationId));
+
+        return response;
+    }
+
+    public GetProductsByGroupResponse getProductsByGroup(Long groupId) {
+        return null;
+    }
+}
