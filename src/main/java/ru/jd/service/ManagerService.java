@@ -17,6 +17,7 @@ import ru.jd.model.dto.device.UpdateGroupDeviceResponse;
 import ru.jd.model.dto.group.AddProductGroupResponse;
 import ru.jd.model.dto.group.CreateGroupRequest;
 import ru.jd.model.dto.group.CreateGroupResponse;
+import ru.jd.model.dto.group.GetProductsByGroupResponse;
 import ru.jd.model.dto.organization.AddProductOrganizationRequest;
 import ru.jd.model.dto.organization.AddProductOrganizationResponse;
 import ru.jd.model.dto.organization.CreateOrganizationRequest;
@@ -129,6 +130,7 @@ public class ManagerService {
 
         return messageInfo;
     }
+
     private static MessageInfo getMessageInfo(Long organizationId, String message) {
         MessageInfo messageInfo = new MessageInfo();
 
@@ -181,7 +183,7 @@ public class ManagerService {
                 UpdateGroupDeviceResponse response = new UpdateGroupDeviceResponse();
                 response.setMessageInfo(getMessageInfo(device.getId()));
                 return response;
-        }
+            }
         }
         UpdateGroupDeviceResponse response = new UpdateGroupDeviceResponse();
         response.setMessageInfo(getMessageInfo(device.getId(), "Group not found"));
@@ -200,6 +202,13 @@ public class ManagerService {
     }
 
     public GetProductsByGroupResponse getProductsByGroup(Long groupId) {
-        return null;
+        List<Product> products = productService.getAllProductsToGroup(groupId);
+
+        GetProductsByGroupResponse response = new GetProductsByGroupResponse();
+
+        response.setMessageInfo(getMessageInfo(groupId));
+        response.setProducts(ProductMapper.toDto(products));
+
+        return response;
     }
 }

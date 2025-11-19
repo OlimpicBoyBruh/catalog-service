@@ -2,6 +2,7 @@ package ru.jd.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.jd.model.dto.group.AddProductGroupResponse;
 import ru.jd.model.dto.group.CreateGroupRequest;
 import ru.jd.model.dto.group.CreateGroupResponse;
+import ru.jd.model.dto.group.GetProductsByGroupResponse;
 import ru.jd.service.ManagerService;
 
 @RequiredArgsConstructor
@@ -31,7 +33,7 @@ public class GroupController {
     }
 
     @GetMapping("/{groupId}/products")
-    public GetProductsByGroupResponse getProductsByGroup(@RequestParam("groupId") Long groupId) {
+    public GetProductsByGroupResponse getProductsByGroup(@PathVariable("groupId") Long groupId) {
         return managerService.getProductsByGroup(groupId);
     }
 }

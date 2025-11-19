@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import ru.jd.model.entity.Product;
 import ru.jd.repository.ProductRepository;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @Service
 public class ProductService {
@@ -15,5 +17,8 @@ public class ProductService {
     }
     public Product getProductById(Long id) {
         return productRepository.findById(id).orElse(null);
+    }
+    public List<Product> getAllProductsToGroup(Long groupId) {
+        return productRepository.findProductByGroupsId(groupId);
     }
 }
