@@ -15,7 +15,6 @@ public class ProductMapper {
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setBasePrice(request.getBasePrice());
         product.setDetails(request.getDetails());
         product.setOrganization(organization);
         product.setImageUrl(imagePath);
@@ -25,6 +24,6 @@ public class ProductMapper {
 
     public static List<ProductDto> toDto(List<Product> products) {
         return products.stream().map(p -> new ProductDto(p.getId(), p.getName(),
-                p.getDescription(), p.getBasePrice(), p.getImageUrl(), p.getDetails(), p.getCreatedAt())).toList();
+                p.getDescription(), p.getImageUrl(), p.getDetails(), p.getCreatedAt())).toList();
     }
 }

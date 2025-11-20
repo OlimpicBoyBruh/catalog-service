@@ -6,24 +6,13 @@
 </head>
 <body>
 <section class="page-section">
-    <a class="link-back" th:href="@{'/organizations/' + ${organization.id} + '?tab=groups'}">← К группам организации</a>
     <div class="org-summary">
         <div>
-            <p class="eyebrow" th:text="${organization.name}">Организация</p>
             <h1 th:text="${group.name}">Название группы</h1>
             <p class="muted" th:text="${group.description != null ? group.description : 'Описание отсутствует'}"></p>
         </div>
-        <div class="stats">
-            <div>
-                <span class="eyebrow">Создана</span>
-                <strong th:text="${group.createdAt != null ? #temporals.format(group.createdAt, 'dd.MM.yyyy HH:mm') : '—'}">01.01.2024</strong>
-            </div>
-            <div>
-                <span class="eyebrow">Продуктов</span>
-                <strong th:text="${productCount}">0</strong>
-            </div>
-        </div>
     </div>
+
 </section>
 
 <section class="page-section">
@@ -38,8 +27,6 @@
                 <select id="product-sort">
                     <option value="newest">Сначала новые</option>
                     <option value="oldest">Сначала старые</option>
-                    <option value="priceDesc">Цена по убыванию</option>
-                    <option value="priceAsc">Цена по возрастанию</option>
                     <option value="name">По алфавиту</option>
                 </select>
             </label>
@@ -54,25 +41,23 @@
                  th:data-name="${product.name != null ? product.name : 'Продукт'}"
                  th:data-description-search="${product.description != null ? product.description.toLowerCase() : ''}"
                  th:data-description="${product.description != null ? product.description : 'Описание отсутствует'}"
-                 th:data-price="${product.basePrice != null ? product.basePrice : 0}"
-                 th:data-price-text="${product.basePrice != null ? (#numbers.formatDecimal(product.basePrice, 1, 'COMMA', 2, 'POINT') + ' ₽') : ''}"
                  th:data-created="${product.createdAt != null ? #temporals.format(product.createdAt, 'yyyy-MM-dd''T''HH:mm:ss') : ''}"
                  th:data-image="${product.imageUrl != null ? product.imageUrl : ''}">
-            <div class="product-image large" th:with="imageUrl=${product.imageUrl}">
+            <div class="product-image" th:with="imageUrl=${product.imageUrl}">
                 <img th:if="${imageUrl != null}"
                      th:src="${imageUrl}"
-                     alt="" loading="lazy"/>
+                     alt=""
+                     loading="lazy"
+                     style="width: auto; height: auto; max-width: 100%; max-height: 300px; object-fit: contain;"/>
                 <img th:if="${imageUrl == null}"
                      th:src="@{/img/product-placeholder.svg}"
-                     alt="" loading="lazy"/>
+                     alt=""
+                     loading="lazy"
+                     style="width: auto; height: auto; max-width: 100%; max-height: 300px; object-fit: contain;"/>
             </div>
             <div class="product-card-body">
                 <div class="product-card-header">
                     <h3 th:text="${product.name}">Название продукта</h3>
-                </div>
-                <div class="product-meta">
-                    <span th:if="${product.basePrice != null}"
-                          th:text="${#numbers.formatDecimal(product.basePrice, 1, 'COMMA', 2, 'POINT')} + ' ₽'"></span>
                 </div>
                 <div class="product-details" hidden>
                     <ul th:if="${product.details != null and !product.details.isEmpty()}">
@@ -108,7 +93,6 @@
             let modalImage;
             let modalTitle;
             let modalDescription;
-            let modalPrice;
             let modalDetails;
             let modalDetailsContent;
 
@@ -127,19 +111,20 @@
                 modal = document.createElement('div');
                 modal.className = 'product-modal';
                 modal.id = 'product-modal';
-                modal.style.display = 'none'; // Используем display вместо hidden
+                modal.style.display = 'none';
                 modal.innerHTML = `
                     <div class="product-modal__backdrop" data-modal-close></div>
                     <div class="product-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
                         <button class="icon-button product-modal__close" type="button" data-modal-close>×</button>
                         <div class="product-modal__body">
                             <div class="product-modal__media">
-                                <img class="product-modal__image" alt="" src="${placeholderImage}"/>
+                                <img class="product-modal__image"
+                                     alt=""
+                                     style="max-width: 90vw; max-height: 80vh; width: auto; height: auto; object-fit: contain;"/>
                             </div>
                             <div class="product-modal__info">
                                 <h3 id="product-modal-title"></h3>
                                 <p class="muted" id="product-modal-description"></p>
-                                <div class="product-modal__price muted" id="product-modal-price"></div>
                             </div>
                         </div>
                         <div class="product-modal__details" id="product-modal-details" style="display: none">
@@ -153,13 +138,10 @@
                 modalImage = modal.querySelector('.product-modal__image');
                 modalTitle = modal.querySelector('#product-modal-title');
                 modalDescription = modal.querySelector('#product-modal-description');
-                modalPrice = modal.querySelector('#product-modal-price');
                 modalDetails = modal.querySelector('#product-modal-details');
                 modalDetailsContent = modal.querySelector('#product-modal-details-content');
 
-                // Обработчик закрытия для всей модалки
                 modal.addEventListener('click', (event) => {
-                    // Закрытие по клику на backdrop или кнопку закрытия
                     if (event.target.classList.contains('product-modal__backdrop') ||
                     event.target.closest('[data-modal-close]') ||
                     event.target.classList.contains('product-modal__close')) {
@@ -167,7 +149,6 @@
                     }
                 });
 
-                // Отдельный обработчик для кнопки закрытия
                 const closeButton = modal.querySelector('.product-modal__close');
                 if (closeButton) {
                     closeButton.addEventListener('click', (event) => {
@@ -176,7 +157,6 @@
                     });
                 }
 
-                // Обработчик Escape
                 document.addEventListener('keydown', (event) => {
                     if (event.key === 'Escape' && modal.style.display !== 'none') {
                         closeModal();
@@ -199,10 +179,6 @@
                 if (grid) {
                     const sorted = [...visibleCards].sort((a, b) => {
                         switch (sort) {
-                            case 'priceDesc':
-                                return parseFloat(b.dataset.price || '0') - parseFloat(a.dataset.price || '0');
-                            case 'priceAsc':
-                                return parseFloat(a.dataset.price || '0') - parseFloat(b.dataset.price || '0');
                             case 'name':
                                 return (a.dataset.name || '').localeCompare(b.dataset.name || '');
                             case 'oldest':
@@ -225,19 +201,31 @@
 
                 const title = card.dataset.name || 'Продукт';
                 const description = card.dataset.description || '';
-                const priceText = card.dataset.priceText || card.querySelector('.product-meta span')?.textContent?.trim() || '';
                 const imageSrc = card.dataset.image || placeholderImage;
 
                 modalTitle.textContent = title;
                 modalDescription.textContent = description;
                 modalDescription.style.display = description ? 'block' : 'none';
-                modalPrice.textContent = priceText ? priceText : '';
-                modalPrice.style.display = priceText ? 'block' : 'none';
 
+                // Загружаем изображение в его истинном размере
                 if (imageSrc) {
-                    modalImage.src = imageSrc;
+                    const img = new Image();
+                    img.onload = function() {
+                        modalImage.src = imageSrc;
+                        modalImage.alt = title;
+
+                        // Можно добавить информацию о размере изображения если нужно
+                        console.log(`Original image size: ${this.naturalWidth}x${this.naturalHeight}`);
+                    };
+                    img.onerror = function() {
+                        modalImage.src = placeholderImage;
+                        modalImage.alt = 'Изображение не найдено';
+                    };
+                    img.src = imageSrc;
+                } else {
+                    modalImage.src = placeholderImage;
+                    modalImage.alt = title;
                 }
-                modalImage.alt = title;
 
                 const detailItems = Array.from(card.querySelectorAll('.product-details li'))
                     .map(li => ({
@@ -263,7 +251,7 @@
             function openModal(card) {
                 ensureModal();
                 fillModalFromCard(card);
-                modal.style.display = 'flex'; // Показываем модалку
+                modal.style.display = 'flex';
                 document.body.classList.add('modal-open');
             }
 
@@ -275,7 +263,6 @@
                 document.body.classList.remove('modal-open');
             }
 
-            // Инициализация фильтров
             searchInput?.addEventListener('input', applyFilters);
             sortSelect?.addEventListener('change', applyFilters);
             resetBtn?.addEventListener('click', () => {
@@ -290,7 +277,6 @@
                 return element?.closest('button, a, input, select, textarea');
             }
 
-            // Обработчики для карточек продуктов
             cards.forEach(card => {
                 card.style.cursor = 'pointer';
                 card.addEventListener('click', (event) => {
@@ -313,5 +299,3 @@
 </script>
 </body>
 </html>
-
-

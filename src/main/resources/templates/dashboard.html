@@ -2,7 +2,7 @@
 <html lang="ru" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: base(~{::title}, ~{::section})}">
 <head>
-    <title>Каталог устройств</title>
+    <title>Каталог продуктов</title>
 </head>
 <body>
 <section class="page-section">
@@ -30,7 +30,7 @@
         </article>
     </div>
     <div class="empty-state" th:if="${organizations == null or organizations.isEmpty()}">
-        <p>Пока нет ни одной организации. Создайте первую, чтобы начать работать с каталогом устройств и витрин.</p>
+        <p>Пока нет ни одной организации. Создайте первую, чтобы начать работать с каталогом продуктов и витрин.</p>
     </div>
 </section>
 
@@ -54,4 +54,3 @@
 </section>
 </body>
 </html>
-

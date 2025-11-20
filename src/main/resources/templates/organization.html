@@ -21,120 +21,12 @@
                 <span class="eyebrow">Группы</span>
                 <strong th:text="${groups != null ? groups.size() : 0}">0</strong>
             </div>
-            <div>
-                <span class="eyebrow">Устройства</span>
-                <strong th:text="${devices != null ? devices.size() : 0}">0</strong>
-            </div>
         </div>
-    </div>
-</section>
-
-<section class="tab-section">
-    <div class="section-header small">
-        <div>
-            <p class="eyebrow">Разделы</p>
-            <h3>Навигация по организации</h3>
-        </div>
-    </div>
-    <div class="tabs" role="tablist">
-        <a th:href="@{'/organizations/' + ${organization.id} + '?tab=devices'}"
-           class="tab-link"
-           role="tab"
-           aria-controls="devices-panel"
-           th:classappend="${activeTab == 'devices'} ? ' active'"
-           th:aria-selected="${activeTab == 'devices'}">Устройства</a>
-        <a th:href="@{'/organizations/' + ${organization.id} + '?tab=groups'}"
-           class="tab-link"
-           role="tab"
-           aria-controls="groups-panel"
-           th:classappend="${activeTab == 'groups'} ? ' active'"
-           th:aria-selected="${activeTab == 'groups'}">Группы</a>
     </div>
 </section>
 
 <section class="page-section"
-         th:if="${activeTab == 'devices'}"
-         id="devices-panel"
-         role="tabpanel">
-    <div class="section-header">
-        <div>
-            <p class="eyebrow">Устройства</p>
-            <h2>Дисплеи и витрины</h2>
-        </div>
-    </div>
-    <div class="responsive-table" th:if="${devices != null and !devices.isEmpty()}">
-        <table>
-            <thead>
-            <tr>
-                <th>Название</th>
-                <th>Код</th>
-                <th>Локация</th>
-                <th>Группа</th>
-                <th>Статус</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="device : ${devices}">
-                <td>
-                    <strong th:text="${device.name}">Маркет</strong>
-                    <p class="muted"
-                       th:text="${device.createdAt != null ? #temporals.format(device.createdAt, 'dd.MM.yyyy') : '—'}"></p>
-                </td>
-                <td th:text="${device.deviceCode}">CODE</td>
-                <td th:text="${device.location}">Москва</td>
-                <td th:text="${device.groupName != null ? device.groupName : 'Не назначена'}"></td>
-                <td>
-                    <span class="pill" th:text="${device.isActive ? 'Активно' : 'Выключено'}"></span>
-                </td>
-                <td>
-                    <form class="inline-form"
-                          th:action="@{'/organizations/' + ${organization.id} + '/devices/' + ${device.id} + '/group'}"
-                          method="post">
-                        <select name="groupId" required>
-                            <option value="" disabled selected>Выберите группу</option>
-                            <option th:each="group : ${groups}" th:value="${group.id}"
-                                    th:text="${group.name}"></option>
-                        </select>
-                        <button class="btn secondary" type="submit"
-                                th:disabled="${groups == null or groups.isEmpty()}">
-                            Обновить
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-    <div class="empty-state" th:if="${devices == null or devices.isEmpty()}">
-        <p>Устройств пока нет. Добавьте первое устройство ниже.</p>
-    </div>
-    <div class="form-card" th:if="${deviceForm != null}">
-        <h2>Зарегистрировать устройство</h2>
-        <form th:action="@{'/organizations/' + ${organization.id} + '/devices'}"
-              th:object="${deviceForm}" method="post" class="form-grid">
-            <label>
-                Название
-                <input type="text" th:field="*{name}" placeholder="Витрина ТЦ" required/>
-            </label>
-            <label>
-                Код устройства
-                <input type="text" th:field="*{deviceCode}" placeholder="SMART-001" required/>
-            </label>
-            <label class="full-width">
-                Локация
-                <input type="text" th:field="*{location}" placeholder="г. Москва, ТЦ Афимолл"/>
-            </label>
-            <div class="full-width form-actions">
-                <button class="btn primary" type="submit">Зарегистрировать</button>
-            </div>
-        </form>
-    </div>
-</section>
-
-<section class="page-section"
-         th:if="${activeTab == 'groups'}"
-         id="groups-panel"
+         id="products-panel"
          role="tabpanel">
     <div class="split-header">
         <div>
@@ -169,10 +61,6 @@
                 <label>
                     Название
                     <input type="text" th:field="*{name}" placeholder="Подарочный набор" required/>
-                </label>
-                <label>
-                    Базовая цена
-                    <input type="number" step="0.01" min="0" th:field="*{basePrice}" placeholder="1999.00"/>
                 </label>
                 <label class="full-width">
                     Описание
@@ -245,7 +133,33 @@
                 <p>Сначала добавьте продукты, чтобы привязать их к группе.</p>
             </div>
             <div class="card-footer">
-                <a class="btn secondary" th:href="@{'/organizations/' + ${organization.id} + '/groups/' + ${group.id}}">Открыть группу</a>
+                <div class="url-section">
+                    <label>URL витрины:</label>
+                    <div class="url-input-group">
+                        <input type="text" th:id="'group-url-' + ${group.id}"
+                               th:value="${'http://localhost:9595/organizations/' + organization.id + '/groups/' + group.id}"
+                               readonly class="url-input"/>
+                        <button type="button" class="btn secondary copy-url"
+                                th:data-clipboard-target="'#group-url-' + ${group.id}">
+                            Копировать
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ДОБАВЛЕННЫЙ БЛОК С ДЕЙСТВИЯМИ ГРУППЫ -->
+                <div class="group-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <a class="btn secondary" th:href="@{'/organizations/' + ${organization.id} + '/groups/' + ${group.id}}">Открыть группу</a>
+                    <form th:action="@{'/organizations/' + ${organization.id} + '/groups/' + ${group.id} + '/delete'}"
+                          method="post"
+                          style="margin: 0;"
+                          class="delete-group-form"
+                          th:data-group-name="${group.name}">
+                        <button class="btn secondary" type="submit"
+                                style="background: #dc2626; color: white; border-color: #dc2626;">
+                            Удалить
+                        </button>
+                    </form>
+                </div>
             </div>
         </article>
     </div>
@@ -281,6 +195,43 @@
                     currentIndex += 1;
                 });
             }
+
+            // Инициализация копирования URL
+            document.querySelectorAll('.copy-url').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-clipboard-target');
+                    const input = document.querySelector(targetId);
+
+                    if (input) {
+                        input.select();
+                        input.setSelectionRange(0, 99999);
+
+                        try {
+                            navigator.clipboard.writeText(input.value).then(() => {
+                                const originalText = this.textContent;
+                                this.textContent = 'Скопировано!';
+                                this.classList.add('copied');
+
+                                setTimeout(() => {
+                                    this.textContent = originalText;
+                                    this.classList.remove('copied');
+                                }, 2000);
+                            });
+                        } catch (err) {
+                            // Fallback для старых браузеров
+                            document.execCommand('copy');
+                            const originalText = this.textContent;
+                            this.textContent = 'Скопировано!';
+                            this.classList.add('copied');
+
+                            setTimeout(() => {
+                                this.textContent = originalText;
+                                this.classList.remove('copied');
+                            }, 2000);
+                        }
+                    }
+                });
+            });
         };
 
         if (document.readyState === 'loading') {
@@ -289,7 +240,66 @@
             init();
         }
     })();
+    // Добавьте этот код в существующую функцию initDetailsForm()
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... существующий код для характеристик и копирования URL ...
+
+        // Обработчик удаления групп
+        const deleteForms = document.querySelectorAll('.delete-group-form');
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const groupName = this.getAttribute('data-group-name');
+                if (!confirm(`Вы уверены, что хотите удалить группу "${groupName}"? Это действие нельзя отменить.`)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
 </script>
+
+<style>
+    .url-section {
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .url-section label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .url-input-group {
+        display: flex;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    .url-input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        background-color: #f9fafb;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .url-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+
+    .copy-url.copied {
+        background-color: #10b981;
+        border-color: #10b981;
+    }
+
+    .card-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+</style>
 </body>
 </html>
-

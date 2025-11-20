@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.jd.model.dto.device.GetAllDevicesResponse;
-import ru.jd.model.dto.device.RegistrationDeviceRequest;
-import ru.jd.model.dto.device.UpdateGroupDeviceRequest;
 import ru.jd.model.dto.group.CreateGroupRequest;
 import ru.jd.model.dto.group.GetProductsByGroupResponse;
 import ru.jd.model.dto.group.GroupDto;
@@ -75,7 +72,7 @@ public class PortalController {
     public String viewOrganization(@PathVariable Long organizationId, Model model,
                                    @ModelAttribute("toastError") String toastError,
                                    @ModelAttribute("toastSuccess") String toastSuccess,
-                                   @RequestParam(value = "tab", defaultValue = "devices") String tab,
+                                   @RequestParam(value = "tab", defaultValue = "products") String tab,
                                    @ModelAttribute("productForm") ProductForm productForm) {
         String activeTab = normalizeTab(tab);
         Organization organization = organizationService.getById(organizationId);
@@ -86,16 +83,12 @@ public class PortalController {
 
         var groupsResponse = managerService.getGroupsOrganizations(organizationId);
         List<GroupDto> groups = groupsResponse.getGroups() != null ? groupsResponse.getGroups() : List.of();
-        GetAllDevicesResponse devicesResponse = managerService.getDevices(organizationId);
 
-        Map<Long, Integer> productCounts = "groups".equals(activeTab)
-                ? loadProductsCountForGroups(groups)
-                : Map.of();
+        Map<Long, Integer> productCounts = loadProductsCountForGroups(groups);
 
         model.addAttribute("organization", organization);
         model.addAttribute("groups", groups);
         model.addAttribute("groupProductCounts", productCounts);
-        model.addAttribute("devices", devicesResponse.getDevices() != null ? devicesResponse.getDevices() : List.of());
         model.addAttribute("toastError", StringUtils.hasText(toastError) ? toastError : null);
         model.addAttribute("toastSuccess", StringUtils.hasText(toastSuccess) ? toastSuccess : null);
         model.addAttribute("activeTab", activeTab);
@@ -105,23 +98,30 @@ public class PortalController {
             groupForm.setOrganizationId(organizationId);
             model.addAttribute("groupForm", groupForm);
         }
-        if ("devices".equals(activeTab) && !model.containsAttribute("deviceForm")) {
-            RegistrationDeviceRequest deviceForm = new RegistrationDeviceRequest();
-            deviceForm.setOrganizationId(organizationId);
-            model.addAttribute("deviceForm", deviceForm);
+
+        model.addAttribute("allProducts", managerService.getProductsForOrganization(organizationId));
+        ProductForm effectiveProductForm = productForm;
+        if (effectiveProductForm == null || effectiveProductForm.getOrganizationId() == null) {
+            effectiveProductForm = new ProductForm();
+            effectiveProductForm.setOrganizationId(organizationId);
         }
-        if ("groups".equals(activeTab)) {
-            model.addAttribute("allProducts", managerService.getProductsForOrganization(organizationId));
-            ProductForm effectiveProductForm = productForm;
-            if (effectiveProductForm == null || effectiveProductForm.getOrganizationId() == null) {
-                effectiveProductForm = new ProductForm();
-                effectiveProductForm.setOrganizationId(organizationId);
-            }
-            effectiveProductForm.ensureDetailRows(1);
-            model.addAttribute("productForm", effectiveProductForm);
-        }
+        effectiveProductForm.ensureDetailRows(1);
+        model.addAttribute("productForm", effectiveProductForm);
 
         return "organization";
+    }
+
+    @PostMapping("/organizations/{organizationId}/groups/{groupId}/delete")
+    public String deleteGroup(@PathVariable Long organizationId,
+                              @PathVariable Long groupId,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            managerService.deleteGroup(groupId);
+            redirectAttributes.addFlashAttribute("toastSuccess", "Группа успешно удалена");
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("toastError", "Не удалось удалить группу: " + ex.getMessage());
+        }
+        return redirectToOrganization(organizationId, "products");
     }
 
     @PostMapping("/organizations/{organizationId}/groups")
@@ -136,7 +136,7 @@ public class PortalController {
             redirectAttributes.addFlashAttribute("toastError", "Ошибка при создании группы: " + ex.getMessage());
             redirectAttributes.addFlashAttribute("groupForm", groupForm);
         }
-        return redirectToOrganization(organizationId, "groups");
+        return redirectToOrganization(organizationId, "products");
     }
 
     @PostMapping("/organizations/{organizationId}/products")
@@ -147,7 +147,6 @@ public class PortalController {
             var request = new AddProductOrganizationRequest();
             request.setName(productForm.getName());
             request.setDescription(productForm.getDescription());
-            request.setBasePrice(productForm.getBasePrice());
             request.setOrganizationId(organizationId);
             request.setDetails(productForm.toDetailsMap());
             request.setImage(productForm.getImage());
@@ -158,7 +157,7 @@ public class PortalController {
             redirectAttributes.addFlashAttribute("toastError", "Не удалось добавить продукт: " + ex.getMessage());
             redirectAttributes.addFlashAttribute("productForm", sanitizeProductForm(productForm));
         }
-        return redirectToOrganization(organizationId, "groups");
+        return redirectToOrganization(organizationId, "products");
     }
 
     @PostMapping("/organizations/{organizationId}/groups/{groupId}/products")
@@ -172,40 +171,7 @@ public class PortalController {
         } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("toastError", "Не удалось привязать продукт: " + ex.getMessage());
         }
-        return redirectToOrganization(organizationId, "groups");
-    }
-
-    @PostMapping("/organizations/{organizationId}/devices")
-    public String registerDevice(@PathVariable Long organizationId,
-                                 @ModelAttribute("deviceForm") RegistrationDeviceRequest deviceForm,
-                                 RedirectAttributes redirectAttributes) {
-        try {
-            deviceForm.setOrganizationId(organizationId);
-            managerService.registerDevice(deviceForm);
-            redirectAttributes.addFlashAttribute("toastSuccess", "Устройство зарегистрировано");
-        } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("toastError", "Не удалось зарегистрировать устройство: " + ex.getMessage());
-            redirectAttributes.addFlashAttribute("deviceForm", deviceForm);
-        }
-        return redirectToOrganization(organizationId, "devices");
-    }
-
-    @PostMapping("/organizations/{organizationId}/devices/{deviceId}/group")
-    public String updateDeviceGroup(@PathVariable Long organizationId,
-                                    @PathVariable Long deviceId,
-                                    @RequestParam("groupId") Long groupId,
-                                    RedirectAttributes redirectAttributes) {
-        try {
-            var request = new UpdateGroupDeviceRequest();
-            request.setDeviceId(deviceId);
-            request.setOrganizationId(organizationId);
-            request.setGroupId(groupId);
-            managerService.updateGroupToDevice(request);
-            redirectAttributes.addFlashAttribute("toastSuccess", "Группа для устройства обновлена");
-        } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("toastError", "Не удалось обновить группу: " + ex.getMessage());
-        }
-        return redirectToOrganization(organizationId, "devices");
+        return redirectToOrganization(organizationId, "products");
     }
 
     @GetMapping("/organizations/{organizationId}/groups/{groupId}")
@@ -220,7 +186,7 @@ public class PortalController {
         }
         var group = groupService.getById(groupId);
         if (group == null || !group.getOrganization().getId().equals(organizationId)) {
-            return redirectToOrganization(organizationId, "groups");
+            return redirectToOrganization(organizationId, "products");
         }
 
         GetProductsByGroupResponse productsResponse = managerService.getProductsByGroup(groupId);
@@ -256,7 +222,7 @@ public class PortalController {
     }
 
     private String normalizeTab(String tab) {
-        return "groups".equalsIgnoreCase(tab) ? "groups" : "devices";
+        return "products";
     }
 
     private ProductForm sanitizeProductForm(ProductForm source) {
@@ -264,7 +230,6 @@ public class PortalController {
         clone.setOrganizationId(source.getOrganizationId());
         clone.setName(source.getName());
         clone.setDescription(source.getDescription());
-        clone.setBasePrice(source.getBasePrice());
         if (source.getDetails() != null) {
             List<ProductForm.DetailRow> rows = new ArrayList<>();
             for (ProductForm.DetailRow row : source.getDetails()) {
@@ -282,4 +247,3 @@ public class PortalController {
         return clone;
     }
 }
-
