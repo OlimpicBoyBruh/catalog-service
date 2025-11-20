@@ -23,7 +23,11 @@ public class GroupMapper {
     public static List<GroupDto> toDto(List<Group> groups) {
         return groups.stream()
                 .map(group ->
-                        new GroupDto(group.getId(), group.getName(), group.getDescription(), group.getCreatedAt()))
+                        new GroupDto(group.getId(),
+                                group.getName(),
+                                group.getDescription(),
+                                group.getSubgroups(),
+                                group.getCreatedAt()))
                 .toList();
     }
 }

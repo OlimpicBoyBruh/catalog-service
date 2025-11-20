@@ -32,6 +32,8 @@ public class Organization {
     @Column(unique = true)
     private String name;
 
+    private String logoUrl;
+
     private String description;
 
     @OneToMany( mappedBy =  "organization",fetch = FetchType.LAZY)

@@ -6,13 +6,38 @@
 </head>
 <body>
 <section class="page-section">
-    <div class="org-summary">
-        <div>
-            <h1 th:text="${group.name}">Название группы</h1>
-            <p class="muted" th:text="${group.description != null ? group.description : 'Описание отсутствует'}"></p>
+    <div class="org-summary" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.5rem; padding: 2rem;">
+        <!-- Блок организации -->
+        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem 2rem;">
+            <!-- Логотип организации (отображается только если есть) -->
+            <img th:if="${organization.logoUrl != null and !organization.logoUrl.isEmpty()}"
+                 th:src="${organization.logoUrl}"
+                 alt="Логотип организации"
+                 style="width: 4.5em; height: 4.5em; object-fit: contain; border-radius: 8px;"/>
+
+            <span style="font-weight: 800; color: #0f172a; font-size: 2.5rem;"
+                  th:text="${organization.name}">Организация</span>
+        </div>
+
+        <!-- Блок группы -->
+        <div style="width: 100%;">
+            <h1 th:text="${group.name}"
+                style="margin: 0 0 1rem 0;
+                       font-size: 1.25rem;
+                       font-weight: 500;
+                       color: #374151;
+                       line-height: 1.2;">
+                Название группы
+            </h1>
+            <p class="muted" th:text="${group.description != null ? group.description : 'Описание отсутствует'}"
+               style="margin: 0;
+                      max-width: 600px;
+                      margin: 0 auto;
+                      font-size: 0.9rem;
+                      line-height: 1.6;">
+            </p>
         </div>
     </div>
-
 </section>
 
 <section class="page-section">
@@ -30,6 +55,12 @@
                     <option value="name">По алфавиту</option>
                 </select>
             </label>
+
+            <!-- Контейнер для динамических фильтров -->
+            <div id="dynamic-filters">
+                <!-- Фильтры будут созданы JavaScript -->
+            </div>
+
             <button class="btn secondary" type="button" id="reset-filters">Сбросить</button>
         </div>
     </div>
@@ -87,6 +118,7 @@
             const searchInput = document.getElementById('product-search');
             const sortSelect = document.getElementById('product-sort');
             const resetBtn = document.getElementById('reset-filters');
+            const dynamicFiltersContainer = document.getElementById('dynamic-filters');
             const placeholderImage = /*[[ @{/img/product-placeholder.svg} ]]*/ '/img/product-placeholder.svg';
 
             let modal;
@@ -96,12 +128,167 @@
             let modalDetails;
             let modalDetailsContent;
 
+            // Объект для хранения активных фильтров
+            let activeFilters = {};
+
             const escapeHtml = (unsafe = '') =>
             unsafe.replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+
+            // Извлекаем все характеристики из продуктов
+            function extractAllDetails() {
+                const allDetails = {};
+
+                cards.forEach(card => {
+                    const detailElements = card.querySelectorAll('.product-details li');
+                    detailElements.forEach(li => {
+                        const key = li.querySelector('.detail-key')?.textContent?.trim();
+                        const value = li.querySelector('.detail-value')?.textContent?.trim();
+
+                        if (key && value) {
+                            if (!allDetails[key]) {
+                                allDetails[key] = new Set();
+                            }
+                            allDetails[key].add(value);
+                        }
+                    });
+                });
+
+                // Сортируем и преобразуем в массивы
+                const sortedDetails = {};
+                Object.keys(allDetails).sort().forEach(key => {
+                    sortedDetails[key] = Array.from(allDetails[key]).sort();
+                });
+
+                return sortedDetails;
+            }
+
+            // Создаем динамические фильтры
+            function createDynamicFilters() {
+                const allDetails = extractAllDetails();
+                dynamicFiltersContainer.innerHTML = '';
+
+                Object.entries(allDetails).forEach(([key, values]) => {
+                    if (values.length > 0) {
+                        const filterId = `filter-${key.replace(/\s+/g, '-').toLowerCase()}`;
+
+                        const filterHtml = `
+                            <label>
+                                ${key}
+                                <select id="${filterId}" class="detail-filter" data-detail-key="${key}">
+                                    <option value="">Все</option>
+                                    ${values.map(value =>
+                                        `<option value="${value}">${value}</option>`
+                                    ).join('')}
+                                </select>
+                            </label>
+                        `;
+
+                        dynamicFiltersContainer.innerHTML += filterHtml;
+                    }
+                });
+
+                // Добавляем обработчики для динамических фильтров
+                document.querySelectorAll('.detail-filter').forEach(select => {
+                    select.addEventListener('change', function() {
+                        const key = this.getAttribute('data-detail-key');
+                        const value = this.value;
+
+                        if (value) {
+                            activeFilters[key] = value;
+                        } else {
+                            delete activeFilters[key];
+                        }
+
+                        applyFilters();
+                    });
+                });
+            }
+
+            // Проверяем, подходит ли продукт под активные фильтры
+            function productMatchesFilters(card) {
+                if (Object.keys(activeFilters).length === 0) {
+                    return true;
+                }
+
+                const detailElements = card.querySelectorAll('.product-details li');
+                const productDetails = {};
+
+                detailElements.forEach(li => {
+                    const key = li.querySelector('.detail-key')?.textContent?.trim();
+                    const value = li.querySelector('.detail-value')?.textContent?.trim();
+                    if (key && value) {
+                        productDetails[key] = value;
+                    }
+                });
+
+                // Проверяем все активные фильтры
+                for (const [filterKey, filterValue] of Object.entries(activeFilters)) {
+                    if (productDetails[filterKey] !== filterValue) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            function applyFilters() {
+                const query = (searchInput?.value || '').trim().toLowerCase();
+                const sort = sortSelect?.value || 'newest';
+
+                cards.forEach(card => {
+                    const name = card.dataset.nameSearch || '';
+                    const description = card.dataset.descriptionSearch || '';
+
+                    const matchesSearch = !query || name.includes(query) || description.includes(query);
+                    const matchesDetails = productMatchesFilters(card);
+
+                    card.style.display = matchesSearch && matchesDetails ? '' : 'none';
+                });
+
+                const visibleCards = cards.filter(card => card.style.display !== 'none');
+                if (grid) {
+                    const sorted = [...visibleCards].sort((a, b) => {
+                        switch (sort) {
+                            case 'name':
+                                return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+                            case 'oldest':
+                                return (a.dataset.created || '').localeCompare(b.dataset.created || '');
+                            case 'newest':
+                            default:
+                                return (b.dataset.created || '').localeCompare(a.dataset.created || '');
+                        }
+                    });
+                    sorted.forEach(card => grid.appendChild(card));
+                    const filterEmpty = document.getElementById('filter-empty');
+                    if (filterEmpty) {
+                        filterEmpty.hidden = visibleCards.length !== 0;
+                    }
+                }
+            }
+
+            // Сброс всех фильтров - ИСПРАВЛЕННАЯ ФУНКЦИЯ
+            function resetAllFilters() {
+                // Сбрасываем текстовый поиск
+                if (searchInput) searchInput.value = '';
+
+                // Сбрасываем сортировку
+                if (sortSelect) sortSelect.value = 'newest';
+
+                // Сбрасываем активные фильтры
+                activeFilters = {};
+
+                // Сбрасываем все выпадающие списки
+                document.querySelectorAll('.detail-filter').forEach(select => {
+                    select.value = '';
+                });
+
+                // Применяем фильтры
+                applyFilters();
+            }
 
             function ensureModal() {
                 if (modal) {
@@ -164,38 +351,6 @@
                 });
             }
 
-            function applyFilters() {
-                const query = (searchInput?.value || '').trim().toLowerCase();
-                const sort = sortSelect?.value || 'newest';
-
-                cards.forEach(card => {
-                    const name = card.dataset.nameSearch || '';
-                    const description = card.dataset.descriptionSearch || '';
-                    const matches = !query || name.includes(query) || description.includes(query);
-                    card.style.display = matches ? '' : 'none';
-                });
-
-                const visibleCards = cards.filter(card => card.style.display !== 'none');
-                if (grid) {
-                    const sorted = [...visibleCards].sort((a, b) => {
-                        switch (sort) {
-                            case 'name':
-                                return (a.dataset.name || '').localeCompare(b.dataset.name || '');
-                            case 'oldest':
-                                return (a.dataset.created || '').localeCompare(b.dataset.created || '');
-                            case 'newest':
-                            default:
-                                return (b.dataset.created || '').localeCompare(a.dataset.created || '');
-                        }
-                    });
-                    sorted.forEach(card => grid.appendChild(card));
-                    const filterEmpty = document.getElementById('filter-empty');
-                    if (filterEmpty) {
-                        filterEmpty.hidden = visibleCards.length !== 0;
-                    }
-                }
-            }
-
             function fillModalFromCard(card) {
                 ensureModal();
 
@@ -207,15 +362,11 @@
                 modalDescription.textContent = description;
                 modalDescription.style.display = description ? 'block' : 'none';
 
-                // Загружаем изображение в его истинном размере
                 if (imageSrc) {
                     const img = new Image();
                     img.onload = function() {
                         modalImage.src = imageSrc;
                         modalImage.alt = title;
-
-                        // Можно добавить информацию о размере изображения если нужно
-                        console.log(`Original image size: ${this.naturalWidth}x${this.naturalHeight}`);
                     };
                     img.onerror = function() {
                         modalImage.src = placeholderImage;
@@ -263,19 +414,22 @@
                 document.body.classList.remove('modal-open');
             }
 
-            searchInput?.addEventListener('input', applyFilters);
-            sortSelect?.addEventListener('change', applyFilters);
-            resetBtn?.addEventListener('click', () => {
-                if (searchInput) searchInput.value = '';
-                if (sortSelect) sortSelect.value = 'newest';
-                applyFilters();
-            });
-
             function isInteractiveTarget(target) {
                 if (!target) return false;
                 const element = target instanceof Element ? target : target.parentElement;
                 return element?.closest('button, a, input, select, textarea');
             }
+
+            // Инициализация
+            createDynamicFilters();
+            applyFilters();
+
+            // Обработчики событий
+            searchInput?.addEventListener('input', applyFilters);
+            sortSelect?.addEventListener('change', applyFilters);
+
+            // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ СБРОСА
+            resetBtn?.addEventListener('click', resetAllFilters);
 
             cards.forEach(card => {
                 card.style.cursor = 'pointer';
@@ -286,8 +440,6 @@
                     openModal(card);
                 });
             });
-
-            applyFilters();
         };
 
         if (document.readyState === 'loading') {
@@ -297,5 +449,39 @@
         }
     })();
 </script>
+
+<style>
+    #dynamic-filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .detail-filter {
+        width: 100%;
+    }
+
+    .filter-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        #dynamic-filters {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+    }
+</style>
 </body>
 </html>

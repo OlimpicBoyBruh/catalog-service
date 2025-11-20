@@ -49,6 +49,21 @@
                     Описание
                     <textarea th:field="*{description}" placeholder="Например, витрины с сезонными товарами"></textarea>
                 </label>
+
+                <!-- Добавление подгрупп -->
+                <div class="full-width">
+                    <label>Подгруппы (линейки)</label>
+                    <div class="subgroups-grid" data-subgroup-list>
+                        <div class="subgroup-row" th:each="subgroup, iterStat : ${groupForm.subgroups}">
+                            <input type="text"
+                                   th:field="*{subgroups[__${iterStat.index}__]}"
+                                   placeholder="Название подгруппы"/>
+                            <button type="button" class="btn ghost remove-subgroup" data-remove-subgroup>×</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn ghost add-subgroup" data-add-subgroup>+ Добавить подгруппу</button>
+                </div>
+
                 <div class="full-width form-actions">
                     <button class="btn primary" type="submit">Создать</button>
                 </div>
@@ -175,24 +190,71 @@
     </div>
 </template>
 
+<!-- Новый шаблон для подгрупп -->
+<template id="subgroup-row-template">
+    <div class="subgroup-row">
+        <input type="text" name="subgroups[__index__]" id="subgroups-__index__" placeholder="Название подгруппы"/>
+        <button type="button" class="btn ghost remove-subgroup" data-remove-subgroup>×</button>
+    </div>
+</template>
+
 <script th:inline="javascript">
     (function initDetailsForm() {
         const init = () => {
+            // Инициализация характеристик продуктов
             const detailsGrid = document.querySelector('[data-detail-list]');
             const addDetailBtn = document.querySelector('[data-add-detail]');
-            const template = document.getElementById('detail-row-template');
-            if (detailsGrid && addDetailBtn && template) {
-                let currentIndex = detailsGrid.querySelectorAll('.detail-row').length;
+            const detailTemplate = document.getElementById('detail-row-template');
+
+            if (detailsGrid && addDetailBtn && detailTemplate) {
+                let currentDetailIndex = detailsGrid.querySelectorAll('.detail-row').length;
                 addDetailBtn.addEventListener('click', () => {
-                    const clone = template.content.cloneNode(true);
+                    const clone = detailTemplate.content.cloneNode(true);
                     clone.querySelectorAll('input').forEach(input => {
-                        input.name = input.name.replace('__index__', currentIndex);
+                        input.name = input.name.replace('__index__', currentDetailIndex);
                         if (input.id) {
-                            input.id = input.id.replace('__index__', currentIndex);
+                            input.id = input.id.replace('__index__', currentDetailIndex);
                         }
                     });
                     detailsGrid.appendChild(clone);
-                    currentIndex += 1;
+                    currentDetailIndex += 1;
+                });
+            }
+
+            // Инициализация подгрупп
+            const subgroupsGrid = document.querySelector('[data-subgroup-list]');
+            const addSubgroupBtn = document.querySelector('[data-add-subgroup]');
+            const subgroupTemplate = document.getElementById('subgroup-row-template');
+
+            if (subgroupsGrid && addSubgroupBtn && subgroupTemplate) {
+                let currentSubgroupIndex = subgroupsGrid.querySelectorAll('.subgroup-row').length;
+
+                // Добавление новой подгруппы
+                addSubgroupBtn.addEventListener('click', () => {
+                    const clone = subgroupTemplate.content.cloneNode(true);
+                    clone.querySelectorAll('input').forEach(input => {
+                        input.name = input.name.replace('__index__', currentSubgroupIndex);
+                        if (input.id) {
+                            input.id = input.id.replace('__index__', currentSubgroupIndex);
+                        }
+                    });
+                    subgroupsGrid.appendChild(clone);
+                    currentSubgroupIndex += 1;
+
+                    // Добавляем обработчик удаления для новой строки
+                    const removeBtn = subgroupsGrid.querySelector('.subgroup-row:last-child [data-remove-subgroup]');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('click', function() {
+                            this.closest('.subgroup-row').remove();
+                        });
+                    }
+                });
+
+                // Обработчики удаления для существующих подгрупп
+                document.querySelectorAll('[data-remove-subgroup]').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        this.closest('.subgroup-row').remove();
+                    });
                 });
             }
 
@@ -232,6 +294,17 @@
                     }
                 });
             });
+
+            // Обработчик удаления групп
+            const deleteForms = document.querySelectorAll('.delete-group-form');
+            deleteForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const groupName = this.getAttribute('data-group-name');
+                    if (!confirm(`Вы уверены, что хотите удалить группу "${groupName}"? Это действие нельзя отменить.`)) {
+                        e.preventDefault();
+                    }
+                });
+            });
         };
 
         if (document.readyState === 'loading') {
@@ -240,21 +313,6 @@
             init();
         }
     })();
-    // Добавьте этот код в существующую функцию initDetailsForm()
-    document.addEventListener('DOMContentLoaded', function() {
-        // ... существующий код для характеристик и копирования URL ...
-
-        // Обработчик удаления групп
-        const deleteForms = document.querySelectorAll('.delete-group-form');
-        deleteForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                const groupName = this.getAttribute('data-group-name');
-                if (!confirm(`Вы уверены, что хотите удалить группу "${groupName}"? Это действие нельзя отменить.`)) {
-                    e.preventDefault();
-                }
-            });
-        });
-    });
 </script>
 
 <style>
@@ -299,6 +357,44 @@
     .card-footer {
         flex-direction: column;
         align-items: stretch;
+    }
+    .subgroups-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .subgroup-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .subgroup-row input {
+        flex: 1;
+    }
+
+    .remove-subgroup {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+
+    .remove-subgroup:hover {
+        background: #fecaca;
+        color: #b91c1c;
+    }
+
+    .add-subgroup {
+        margin-top: 0.5rem;
     }
 </style>
 </body>

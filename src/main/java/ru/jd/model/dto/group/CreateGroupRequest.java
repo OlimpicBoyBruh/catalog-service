@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
@@ -13,4 +15,5 @@ public class CreateGroupRequest {
     private Long organizationId;
     private String name;
     private String description;
+    private List<String> subgroups;
 }

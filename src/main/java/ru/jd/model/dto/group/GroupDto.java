@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,5 +18,6 @@ public class GroupDto {
     private Long id;
     private String name;
     private String description;
+    private List<String> subgroups;
     private LocalDateTime createdAt;
 }
