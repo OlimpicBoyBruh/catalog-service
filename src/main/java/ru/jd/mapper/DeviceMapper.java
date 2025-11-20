@@ -20,7 +20,17 @@ public class DeviceMapper {
     }
 
     public static List<DeviceDto> toDto(List<Device> devices) {
-        return devices.stream().map(d -> new DeviceDto(d.getId(),d.getName(),d.getDeviceCode(),
-                d.getLocation(),d.getIsActive(), d.getCreatedAt())).toList();
+        return devices.stream()
+                .map(d -> new DeviceDto(
+                        d.getId(),
+                        d.getName(),
+                        d.getDeviceCode(),
+                        d.getLocation(),
+                        d.getIsActive(),
+                        d.getCreatedAt(),
+                        d.getGroup() != null ? d.getGroup().getId() : null,
+                        d.getGroup() != null ? d.getGroup().getName() : null
+                ))
+                .toList();
     }
 }

@@ -14,6 +14,7 @@ public class ProductMapper {
         Product product = new Product();
 
         product.setName(request.getName());
+        product.setDescription(request.getDescription());
         product.setBasePrice(request.getBasePrice());
         product.setDetails(request.getDetails());
         product.setOrganization(organization);

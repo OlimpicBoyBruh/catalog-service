@@ -21,4 +21,8 @@ public class ProductService {
     public List<Product> getAllProductsToGroup(Long groupId) {
         return productRepository.findProductByGroupsId(groupId);
     }
+
+    public List<Product> getProductsByOrganization(Long organizationId) {
+        return productRepository.findByOrganizationId(organizationId);
+    }
 }

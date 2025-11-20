@@ -20,4 +20,6 @@ public class DeviceDto {
     private String location;
     private Boolean isActive;
     private LocalDateTime createdAt;
+    private Long groupId;
+    private String groupName;
 }

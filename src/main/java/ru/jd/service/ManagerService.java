@@ -18,6 +18,7 @@ import ru.jd.model.dto.group.AddProductGroupResponse;
 import ru.jd.model.dto.group.CreateGroupRequest;
 import ru.jd.model.dto.group.CreateGroupResponse;
 import ru.jd.model.dto.group.GetProductsByGroupResponse;
+import ru.jd.model.dto.group.ProductDto;
 import ru.jd.model.dto.organization.AddProductOrganizationRequest;
 import ru.jd.model.dto.organization.AddProductOrganizationResponse;
 import ru.jd.model.dto.organization.CreateOrganizationRequest;
@@ -31,6 +32,7 @@ import ru.jd.model.entity.Organization;
 import ru.jd.model.entity.Product;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -99,8 +101,12 @@ public class ManagerService {
         Organization organization = organizationService.getReferenceById(organizationId);
 
 
-        Product product = ProductMapper.toEntity(addProductOrganizationRequest, organization
-                , saveImage(addProductOrganizationRequest.getImage()).toString());
+        Path storedImage = addProductOrganizationRequest.getImage() != null && !addProductOrganizationRequest.getImage().isEmpty()
+                ? saveImage(addProductOrganizationRequest.getImage())
+                : null;
+
+        Product product = ProductMapper.toEntity(addProductOrganizationRequest, organization,
+                storedImage != null ? buildPublicImagePath(storedImage) : null);
 
         productService.saveProduct(product);
 
@@ -112,14 +118,20 @@ public class ManagerService {
     }
 
     private Path saveImage(MultipartFile image) {
-        Path targetPath = Paths.get(pathStorageImage, image.getOriginalFilename());
+        Path storageDir = Paths.get(pathStorageImage);
+        Path targetPath = storageDir.resolve(image.getOriginalFilename());
 
         try {
+            Files.createDirectories(storageDir);
             image.transferTo(targetPath);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return targetPath;
+    }
+
+    private String buildPublicImagePath(Path storedImage) {
+        return "/uploads/" + storedImage.getFileName();
     }
 
     private static MessageInfo getMessageInfo(Long organizationId) {
@@ -210,5 +222,10 @@ public class ManagerService {
         response.setProducts(ProductMapper.toDto(products));
 
         return response;
+    }
+
+    public List<ProductDto> getProductsForOrganization(Long organizationId) {
+        List<Product> products = productService.getProductsByOrganization(organizationId);
+        return ProductMapper.toDto(products);
     }
 }

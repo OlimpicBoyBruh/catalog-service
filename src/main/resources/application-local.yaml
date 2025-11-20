@@ -13,6 +13,10 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 20MB
 
 
 

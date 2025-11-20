@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      th:fragment="base(title, content)">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:replace="${title}">Smart Showcase</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+</head>
+<body>
+<header class="app-header">
+    <div class="container header-content">
+        <a class="logo" th:href="@{/}">Smart Showcase</a>
+        <nav class="nav">
+            <a th:href="@{/}">Организации</a>
+        </nav>
+    </div>
+</header>
+<main class="container">
+    <div th:replace="${content}"></div>
+</main>
+
+<div class="toast success" th:if="${toastSuccess}" th:text="${toastSuccess}"></div>
+<div class="toast error" th:if="${toastError}" th:text="${toastError}"></div>
+
+<script>
+    window.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".toast").forEach(toast => {
+            toast.classList.add("visible");
+            setTimeout(() => toast.classList.remove("visible"), 4000);
+        });
+    });
+</script>
+</body>
+</html>
+

@@ -17,4 +17,8 @@ public class GroupService {
     public Group getReferenceById(Long id) {
         return groupRepository.getReferenceById(id);
     }
+
+    public Group getById(Long id) {
+        return groupRepository.findById(id).orElse(null);
+    }
 }
