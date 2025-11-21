@@ -1,4 +1,4 @@
-package ru.jd.model.dto.organization;
+package ru.jd.model.dto.template;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -13,11 +13,12 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
-public class AddProductOrganizationRequest {
+public class AddProductTemplateRequest {
     private String name;
     private String description;
     private BigDecimal basePrice;
-    private Long organizationId;
+    private Long templateId;
     private Map<String, String> details;
+    private String line;
     private MultipartFile image;
 }

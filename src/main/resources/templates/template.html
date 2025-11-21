@@ -2,23 +2,22 @@
 <html lang="ru" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: base(~{::title}, ~{::body})}">
 <head>
-    <title th:text="'Организация · ' + ${organization.name}">Организация</title>
+    <title th:text="'Шаблон · ' + ${template.name}">Шаблон</title>
 </head>
 <body>
 <section class="page-section">
-    <a class="link-back" th:href="@{/}">← Ко всем организациям</a>
+    <a class="link-back" th:href="@{/}">← Ко всем шаблонам</a>
     <div class="org-summary">
         <div>
-            <h1 th:text="${organization.name}">Название</h1>
-            <p class="muted" th:text="${organization.description != null ? organization.description : 'Описание отсутствует'}"></p>
+            <h1 th:text="${template.name}">Название</h1>
+            <p class="muted" th:text="${template.description != null ? template.description : 'Описание отсутствует'}"></p>
         </div>
         <div class="stats">
             <div>
                 <span class="eyebrow">Создана</span>
-                <strong th:text="${organization.createdAt != null ? #temporals.format(organization.createdAt, 'dd.MM.yyyy HH:mm') : '—'}">01.01.2024</strong>
+                <strong th:text="${template.createdAt != null ? #temporals.format(template.createdAt, 'dd.MM.yyyy HH:mm') : '—'}">01.01.2024</strong>
             </div>
             <div>
-                <span class="eyebrow">Группы</span>
                 <strong th:text="${groups != null ? groups.size() : 0}">0</strong>
             </div>
         </div>
@@ -30,7 +29,6 @@
          role="tabpanel">
     <div class="split-header">
         <div>
-            <p class="eyebrow">Группы</p>
             <h2>Управление витринами</h2>
         </div>
         <a class="btn primary" href="#group-create">Создать группу</a>
@@ -38,8 +36,8 @@
 
     <div class="columns group-columns">
         <div class="form-card" id="group-create">
-            <h3>Создать новую группу</h3>
-            <form th:action="@{'/organizations/' + ${organization.id} + '/groups'}"
+            <h3>Создать новую витрину</h3>
+            <form th:action="@{'/template/' + ${template.id} + '/groups'}"
                   th:object="${groupForm}" method="post" class="form-grid">
                 <label>
                     Название
@@ -50,18 +48,19 @@
                     <textarea th:field="*{description}" placeholder="Например, витрины с сезонными товарами"></textarea>
                 </label>
 
-                <!-- Добавление подгрупп -->
+                <!-- ДОБАВЛЕННЫЙ БЛОК: Параметры для отображения -->
                 <div class="full-width">
-                    <label>Подгруппы (линейки)</label>
-                    <div class="subgroups-grid" data-subgroup-list>
-                        <div class="subgroup-row" th:each="subgroup, iterStat : ${groupForm.subgroups}">
+                    <label>Параметры для отображения</label>
+                    <div class="display-details-grid" data-display-detail-list>
+                        <div class="display-detail-row" th:each="displayDetail, iterStat : ${groupForm.displayDetails}">
                             <input type="text"
-                                   th:field="*{subgroups[__${iterStat.index}__]}"
-                                   placeholder="Название подгруппы"/>
-                            <button type="button" class="btn ghost remove-subgroup" data-remove-subgroup>×</button>
+                                   th:field="*{displayDetails[__${iterStat.index}__]}"
+                                   placeholder="Название параметра (например: Цвет, Размер)"/>
+                            <button type="button" class="btn ghost remove-display-detail" data-remove-display-detail>×</button>
                         </div>
                     </div>
-                    <button type="button" class="btn ghost add-subgroup" data-add-subgroup>+ Добавить подгруппу</button>
+                    <button type="button" class="btn ghost add-display-detail" data-add-display-detail>+ Добавить параметр</button>
+                    <small class="hint">Эти параметры будут отображаться при просмотре группы</small>
                 </div>
 
                 <div class="full-width form-actions">
@@ -71,12 +70,19 @@
         </div>
         <div class="form-card" id="product-create" th:if="${productForm != null}">
             <h3>Добавить продукт в каталог</h3>
-            <form th:action="@{'/organizations/' + ${organization.id} + '/products'}"
+            <form th:action="@{'/template/' + ${template.id} + '/products'}"
                   th:object="${productForm}" method="post" enctype="multipart/form-data" class="form-grid">
                 <label>
                     Название
                     <input type="text" th:field="*{name}" placeholder="Подарочный набор" required/>
                 </label>
+
+                <!-- ДОБАВЛЕННЫЙ БЛОК: Поле для ввода линейки товара -->
+                <label>
+                    Линейка товара
+                    <input type="text" th:field="*{line}" placeholder="Введите название линейки"/>
+                </label>
+
                 <label class="full-width">
                     Описание
                     <textarea th:field="*{description}" placeholder="Кратко опишите продукт"></textarea>
@@ -108,7 +114,6 @@
 
     <div class="section-header">
         <div>
-            <p class="eyebrow">Существующие группы</p>
             <h3>Список витрин</h3>
         </div>
         <div class="section-actions">
@@ -131,7 +136,7 @@
             </div>
             <form class="inline-form attach-form"
                   th:if="${allProducts != null and !allProducts.isEmpty()}"
-                  th:action="@{'/organizations/' + ${organization.id} + '/groups/' + ${group.id} + '/products'}"
+                  th:action="@{'/template/' + ${template.id} + '/groups/' + ${group.id} + '/products'}"
                   method="post">
                 <label>
                     Привязать продукт
@@ -152,7 +157,7 @@
                     <label>URL витрины:</label>
                     <div class="url-input-group">
                         <input type="text" th:id="'group-url-' + ${group.id}"
-                               th:value="${'http://localhost:9595/organizations/' + organization.id + '/groups/' + group.id}"
+                               th:value="${'http://localhost:9595/template/' + template.id + '/groups/' + group.id}"
                                readonly class="url-input"/>
                         <button type="button" class="btn secondary copy-url"
                                 th:data-clipboard-target="'#group-url-' + ${group.id}">
@@ -163,8 +168,8 @@
 
                 <!-- ДОБАВЛЕННЫЙ БЛОК С ДЕЙСТВИЯМИ ГРУППЫ -->
                 <div class="group-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <a class="btn secondary" th:href="@{'/organizations/' + ${organization.id} + '/groups/' + ${group.id}}">Открыть группу</a>
-                    <form th:action="@{'/organizations/' + ${organization.id} + '/groups/' + ${group.id} + '/delete'}"
+                    <a class="btn secondary" th:href="@{'/template/' + ${template.id} + '/groups/' + ${group.id}}">Открыть группу</a>
+                    <form th:action="@{'/template/' + ${template.id} + '/groups/' + ${group.id} + '/delete'}"
                           method="post"
                           style="margin: 0;"
                           class="delete-group-form"
@@ -190,11 +195,10 @@
     </div>
 </template>
 
-<!-- Новый шаблон для подгрупп -->
-<template id="subgroup-row-template">
-    <div class="subgroup-row">
-        <input type="text" name="subgroups[__index__]" id="subgroups-__index__" placeholder="Название подгруппы"/>
-        <button type="button" class="btn ghost remove-subgroup" data-remove-subgroup>×</button>
+<template id="display-detail-row-template">
+    <div class="display-detail-row">
+        <input type="text" name="displayDetails[__index__]" id="displayDetails-__index__" placeholder="Название параметра"/>
+        <button type="button" class="btn ghost remove-display-detail" data-remove-display-detail>×</button>
     </div>
 </template>
 
@@ -221,39 +225,39 @@
                 });
             }
 
-            // Инициализация подгрупп
-            const subgroupsGrid = document.querySelector('[data-subgroup-list]');
-            const addSubgroupBtn = document.querySelector('[data-add-subgroup]');
-            const subgroupTemplate = document.getElementById('subgroup-row-template');
+            // Инициализация параметров отображения
+            const displayDetailsGrid = document.querySelector('[data-display-detail-list]');
+            const addDisplayDetailBtn = document.querySelector('[data-add-display-detail]');
+            const displayDetailTemplate = document.getElementById('display-detail-row-template');
 
-            if (subgroupsGrid && addSubgroupBtn && subgroupTemplate) {
-                let currentSubgroupIndex = subgroupsGrid.querySelectorAll('.subgroup-row').length;
+            if (displayDetailsGrid && addDisplayDetailBtn && displayDetailTemplate) {
+                let currentDisplayDetailIndex = displayDetailsGrid.querySelectorAll('.display-detail-row').length;
 
-                // Добавление новой подгруппы
-                addSubgroupBtn.addEventListener('click', () => {
-                    const clone = subgroupTemplate.content.cloneNode(true);
+                // Добавление нового параметра отображения
+                addDisplayDetailBtn.addEventListener('click', () => {
+                    const clone = displayDetailTemplate.content.cloneNode(true);
                     clone.querySelectorAll('input').forEach(input => {
-                        input.name = input.name.replace('__index__', currentSubgroupIndex);
+                        input.name = input.name.replace('__index__', currentDisplayDetailIndex);
                         if (input.id) {
-                            input.id = input.id.replace('__index__', currentSubgroupIndex);
+                            input.id = input.id.replace('__index__', currentDisplayDetailIndex);
                         }
                     });
-                    subgroupsGrid.appendChild(clone);
-                    currentSubgroupIndex += 1;
+                    displayDetailsGrid.appendChild(clone);
+                    currentDisplayDetailIndex += 1;
 
                     // Добавляем обработчик удаления для новой строки
-                    const removeBtn = subgroupsGrid.querySelector('.subgroup-row:last-child [data-remove-subgroup]');
+                    const removeBtn = displayDetailsGrid.querySelector('.display-detail-row:last-child [data-remove-display-detail]');
                     if (removeBtn) {
                         removeBtn.addEventListener('click', function() {
-                            this.closest('.subgroup-row').remove();
+                            this.closest('.display-detail-row').remove();
                         });
                     }
                 });
 
-                // Обработчики удаления для существующих подгрупп
-                document.querySelectorAll('[data-remove-subgroup]').forEach(btn => {
+                // Обработчики удаления для существующих параметров отображения
+                document.querySelectorAll('[data-remove-display-detail]').forEach(btn => {
                     btn.addEventListener('click', function() {
-                        this.closest('.subgroup-row').remove();
+                        this.closest('.display-detail-row').remove();
                     });
                 });
             }
@@ -358,24 +362,25 @@
         flex-direction: column;
         align-items: stretch;
     }
-    .subgroups-grid {
+
+    .display-details-grid {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
         margin-bottom: 0.5rem;
     }
 
-    .subgroup-row {
+    .display-detail-row {
         display: flex;
         gap: 0.5rem;
         align-items: center;
     }
 
-    .subgroup-row input {
+    .display-detail-row input {
         flex: 1;
     }
 
-    .remove-subgroup {
+    .remove-display-detail {
         width: 32px;
         height: 32px;
         padding: 0;
@@ -388,13 +393,20 @@
         border: 1px solid #fecaca;
     }
 
-    .remove-subgroup:hover {
+    .remove-display-detail:hover {
         background: #fecaca;
         color: #b91c1c;
     }
 
-    .add-subgroup {
+    .add-display-detail {
         margin-top: 0.5rem;
+    }
+
+    .hint {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        color: #6b7280;
     }
 </style>
 </body>

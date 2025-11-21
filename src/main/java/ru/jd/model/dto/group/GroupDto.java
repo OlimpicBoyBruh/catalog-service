@@ -18,6 +18,6 @@ public class GroupDto {
     private Long id;
     private String name;
     private String description;
-    private List<String> subgroups;
+    private List<String> displayDetails;
     private LocalDateTime createdAt;
 }

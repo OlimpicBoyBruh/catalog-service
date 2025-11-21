@@ -19,6 +19,7 @@ public class ProductDto {
     private String name;
     private String description;
     private String imageUrl;
+    private String line;
     private Map<String,String> details;
     private LocalDateTime createdAt;
 }

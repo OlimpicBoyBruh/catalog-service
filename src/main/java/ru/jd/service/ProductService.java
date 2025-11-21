@@ -22,7 +22,7 @@ public class ProductService {
         return productRepository.findProductByGroupsId(groupId);
     }
 
-    public List<Product> getProductsByOrganization(Long organizationId) {
-        return productRepository.findByOrganizationId(organizationId);
+    public List<Product> getProductsByTemplate(Long templateId) {
+        return productRepository.findByTemplateId(templateId);
     }
 }

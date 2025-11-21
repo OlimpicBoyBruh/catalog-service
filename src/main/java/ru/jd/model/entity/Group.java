@@ -28,31 +28,21 @@ import java.util.List;
 @NoArgsConstructor
 @Table(name = "groups")
 public class Group {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String name;
-
     private String description;
-
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<String> subgroups = new ArrayList<>();
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
-
+    @JoinColumn(name = "template_id", nullable = false)
+    private Template template;
     @ManyToMany(mappedBy = "groups", fetch = FetchType.LAZY)
     private List<Product> products = new ArrayList<>();
-
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<String> displayDetails = new ArrayList<>();
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

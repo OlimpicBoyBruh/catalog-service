@@ -9,15 +9,16 @@
     <div class="section-header">
         <div>
             <p class="eyebrow">Добро пожаловать</p>
-            <h1>Организации</h1>
+            <h1>Шаблоны</h1>
         </div>
         <div class="section-actions">
-            <span class="hint">Всего: <strong th:text="${organizations.size()}">0</strong></span>
+            <span class="hint">Всего: <strong th:text="${template.size()}">0</strong></span>
+            <button class="btn primary" id="show-template-form">Создать шаблон</button>
         </div>
     </div>
 
-    <div class="grid" th:if="${organizations != null and !organizations.isEmpty()}">
-        <article class="card organization-card" th:each="org : ${organizations}">
+    <div class="grid" th:if="${template != null and !template.isEmpty()}">
+        <article class="card template-card" th:each="org : ${template}">
             <div class="card-header">
                 <h2 th:text="${org.name}">Название</h2>
                 <span class="pill"
@@ -25,32 +26,67 @@
             </div>
             <p class="muted" th:text="${org.description != null ? org.description : 'Описание отсутствует'}"></p>
             <div class="card-footer">
-                <a class="btn primary" th:href="@{'/organizations/' + ${org.id}}">Открыть</a>
+                <a class="btn primary" th:href="@{'/template/' + ${org.id}}">Открыть</a>
             </div>
         </article>
     </div>
-    <div class="empty-state" th:if="${organizations == null or organizations.isEmpty()}">
-        <p>Пока нет ни одной организации. Создайте первую, чтобы начать работать с каталогом продуктов и витрин.</p>
+    <div class="empty-state" th:if="${template == null or template.isEmpty()}">
+        <p>Пока нет ни одного шаблона. Создайте первый шаблон, чтобы начать работать с каталогом продуктов и витрин.</p>
     </div>
-</section>
 
-<section class="page-section">
-    <div class="form-card">
-        <h2>Создать организацию</h2>
-        <form th:action="@{/organizations}" th:object="${organizationForm}" method="post" class="form-grid">
-            <label>
-                Название
-                <input type="text" th:field="*{name}" placeholder="ООО «Витрина»" required/>
-            </label>
-            <label class="full-width">
-                Описание
-                <textarea th:field="*{description}" placeholder="Кратко опишите организацию"></textarea>
-            </label>
-            <div class="full-width form-actions">
-                <button class="btn primary" type="submit">Создать</button>
-            </div>
-        </form>
+    <!-- Форма создания шаблона -->
+    <div class="page-section" id="template-form-section" style="display: none;">
+        <div class="form-card">
+            <h2>Создать шаблон</h2>
+            <form th:action="@{/template}" th:object="${templateForm}" method="post" class="form-grid">
+                <label>
+                    Название
+                    <input type="text" th:field="*{name}" placeholder="«Витрина»" required/>
+                </label>
+                <label class="full-width">
+                    Описание
+                    <textarea th:field="*{description}" placeholder="Кратко опишите содержание"></textarea>
+                </label>
+                <div class="full-width form-actions">
+                    <button class="btn primary" type="submit">Создать шаблон</button>
+                    <button class="btn secondary" type="button" id="hide-template-form">Отмена</button>
+                </div>
+            </form>
+        </div>
     </div>
+
+    <!-- JavaScript внутри секции -->
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded - initializing template form');
+
+            const showButton = document.getElementById('show-template-form');
+            const hideButton = document.getElementById('hide-template-form');
+            const formSection = document.getElementById('template-form-section');
+
+            console.log('Elements found:', {
+                showButton: !!showButton,
+                hideButton: !!hideButton,
+                formSection: !!formSection
+            });
+
+            if (showButton && formSection) {
+                showButton.addEventListener('click', function() {
+                    console.log('Show button clicked');
+                    formSection.style.display = 'block';
+                    // Прокручиваем к форме
+                    formSection.scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+
+            if (hideButton && formSection) {
+                hideButton.addEventListener('click', function() {
+                    console.log('Hide button clicked');
+                    formSection.style.display = 'none';
+                });
+            }
+        });
+    </script>
 </section>
 </body>
 </html>

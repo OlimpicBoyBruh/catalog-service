@@ -1,15 +1,20 @@
-package ru.jd.model.dto.organization;
+package ru.jd.model.dto.template;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.jd.model.dto.MessageInfo;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+import java.util.List;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
-public class AddProductOrganizationResponse {
+@Setter
+@NoArgsConstructor
+public class GetAllTemplateResponse {
+    private List<TemplateDto> template;
     private MessageInfo messageInfo;
 }

@@ -12,8 +12,9 @@ import java.util.List;
 @Getter
 @Setter
 public class CreateGroupRequest {
-    private Long organizationId;
+    private Long templateId;
     private String name;
     private String description;
+    private List<String> displayDetails;
     private List<String> subgroups;
 }

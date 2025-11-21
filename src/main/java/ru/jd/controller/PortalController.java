@@ -14,13 +14,13 @@ import ru.jd.model.dto.group.CreateGroupRequest;
 import ru.jd.model.dto.group.GetProductsByGroupResponse;
 import ru.jd.model.dto.group.GroupDto;
 import ru.jd.model.dto.group.ProductDto;
-import ru.jd.model.dto.organization.AddProductOrganizationRequest;
-import ru.jd.model.dto.organization.CreateOrganizationRequest;
-import ru.jd.model.dto.organization.OrganizationDto;
-import ru.jd.model.entity.Organization;
+import ru.jd.model.dto.template.AddProductTemplateRequest;
+import ru.jd.model.dto.template.CreateTemplateRequest;
+import ru.jd.model.dto.template.TemplateDto;
+import ru.jd.model.entity.Template;
 import ru.jd.service.GroupService;
 import ru.jd.service.ManagerService;
-import ru.jd.service.OrganizationService;
+import ru.jd.service.TemplateService;
 import ru.jd.web.form.ProductForm;
 
 import java.util.ArrayList;
@@ -33,60 +33,60 @@ import java.util.Map;
 public class PortalController {
 
     private final ManagerService managerService;
-    private final OrganizationService organizationService;
+    private final TemplateService templateService;
     private final GroupService groupService;
 
     @GetMapping("/")
     public String dashboard(Model model,
                             @ModelAttribute("toastError") String toastError,
                             @ModelAttribute("toastSuccess") String toastSuccess) {
-        var response = managerService.getAllOrganizations();
-        List<OrganizationDto> organizations = response.getOrganizations() != null
-                ? response.getOrganizations()
+        var response = managerService.getAllTemplate();
+        List<TemplateDto> template = response.getTemplate() != null
+                ? response.getTemplate()
                 : List.of();
 
-        if (!model.containsAttribute("organizationForm")) {
-            model.addAttribute("organizationForm", new CreateOrganizationRequest());
+        if (!model.containsAttribute("templateForm")) {
+            model.addAttribute("templateForm", new CreateTemplateRequest());
         }
-        model.addAttribute("organizations", organizations);
+        model.addAttribute("template", template);
         model.addAttribute("toastError", StringUtils.hasText(toastError) ? toastError : null);
         model.addAttribute("toastSuccess", StringUtils.hasText(toastSuccess) ? toastSuccess : null);
 
         return "dashboard";
     }
 
-    @PostMapping("/organizations")
-    public String createOrganization(@ModelAttribute CreateOrganizationRequest organizationForm,
+    @PostMapping("/template")
+    public String createTemplate(@ModelAttribute CreateTemplateRequest templateForm,
                                      RedirectAttributes redirectAttributes) {
         try {
-            managerService.saveOrganization(organizationForm);
-            redirectAttributes.addFlashAttribute("toastSuccess", "Организация успешно создана");
+            managerService.saveTemplate(templateForm);
+            redirectAttributes.addFlashAttribute("toastSuccess", "Шаблон успешно создана");
         } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("toastError", "Не удалось создать организацию: " + ex.getMessage());
-            redirectAttributes.addFlashAttribute("organizationForm", organizationForm);
+            redirectAttributes.addFlashAttribute("toastError", "Не удалось создать шаблон: " + ex.getMessage());
+            redirectAttributes.addFlashAttribute("templateForm", templateForm);
         }
         return "redirect:/";
     }
 
-    @GetMapping("/organizations/{organizationId}")
-    public String viewOrganization(@PathVariable Long organizationId, Model model,
+    @GetMapping("/template/{templateId}")
+    public String viewTemplate(@PathVariable Long templateId, Model model,
                                    @ModelAttribute("toastError") String toastError,
                                    @ModelAttribute("toastSuccess") String toastSuccess,
                                    @RequestParam(value = "tab", defaultValue = "products") String tab,
                                    @ModelAttribute("productForm") ProductForm productForm) {
         String activeTab = normalizeTab(tab);
-        Organization organization = organizationService.getById(organizationId);
+        Template template = templateService.getById(templateId);
 
-        if (organization == null) {
+        if (template == null) {
             return "redirect:/";
         }
 
-        var groupsResponse = managerService.getGroupsOrganizations(organizationId);
+        var groupsResponse = managerService.getGroupsTemplate(templateId);
         List<GroupDto> groups = groupsResponse.getGroups() != null ? groupsResponse.getGroups() : List.of();
 
         Map<Long, Integer> productCounts = loadProductsCountForGroups(groups);
 
-        model.addAttribute("organization", organization);
+        model.addAttribute("template", template);
         model.addAttribute("groups", groups);
         model.addAttribute("groupProductCounts", productCounts);
         model.addAttribute("toastError", StringUtils.hasText(toastError) ? toastError : null);
@@ -95,24 +95,24 @@ public class PortalController {
 
         if (!model.containsAttribute("groupForm")) {
             CreateGroupRequest groupForm = new CreateGroupRequest();
-            groupForm.setOrganizationId(organizationId);
+            groupForm.setTemplateId(templateId);
             model.addAttribute("groupForm", groupForm);
         }
 
-        model.addAttribute("allProducts", managerService.getProductsForOrganization(organizationId));
+        model.addAttribute("allProducts", managerService.getProductsForTemplate(templateId));
         ProductForm effectiveProductForm = productForm;
-        if (effectiveProductForm == null || effectiveProductForm.getOrganizationId() == null) {
+        if (effectiveProductForm == null || effectiveProductForm.getTemplateId() == null) {
             effectiveProductForm = new ProductForm();
-            effectiveProductForm.setOrganizationId(organizationId);
+            effectiveProductForm.setTemplateId(templateId);
         }
         effectiveProductForm.ensureDetailRows(1);
         model.addAttribute("productForm", effectiveProductForm);
 
-        return "organization";
+        return "template";
     }
 
-    @PostMapping("/organizations/{organizationId}/groups/{groupId}/delete")
-    public String deleteGroup(@PathVariable Long organizationId,
+    @PostMapping("/template/{templateId}/groups/{groupId}/delete")
+    public String deleteGroup(@PathVariable Long templateId,
                               @PathVariable Long groupId,
                               RedirectAttributes redirectAttributes) {
         try {
@@ -121,47 +121,48 @@ public class PortalController {
         } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("toastError", "Не удалось удалить группу: " + ex.getMessage());
         }
-        return redirectToOrganization(organizationId, "products");
+        return redirectToTemplate(templateId, "products");
     }
 
-    @PostMapping("/organizations/{organizationId}/groups")
-    public String createGroup(@PathVariable Long organizationId,
+    @PostMapping("/template/{templateId}/groups")
+    public String createGroup(@PathVariable Long templateId,
                               @ModelAttribute("groupForm") CreateGroupRequest groupForm,
                               RedirectAttributes redirectAttributes) {
         try {
-            groupForm.setOrganizationId(organizationId);
+            groupForm.setTemplateId(templateId);
             managerService.createGroup(groupForm);
             redirectAttributes.addFlashAttribute("toastSuccess", "Группа создана");
         } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("toastError", "Ошибка при создании группы: " + ex.getMessage());
             redirectAttributes.addFlashAttribute("groupForm", groupForm);
         }
-        return redirectToOrganization(organizationId, "products");
+        return redirectToTemplate(templateId, "products");
     }
 
-    @PostMapping("/organizations/{organizationId}/products")
-    public String addProduct(@PathVariable Long organizationId,
+    @PostMapping("/template/{templateId}/products")
+    public String addProduct(@PathVariable Long templateId,
                              @ModelAttribute("productForm") ProductForm productForm,
                              RedirectAttributes redirectAttributes) {
         try {
-            var request = new AddProductOrganizationRequest();
+            var request = new AddProductTemplateRequest();
             request.setName(productForm.getName());
             request.setDescription(productForm.getDescription());
-            request.setOrganizationId(organizationId);
+            request.setTemplateId(templateId);
             request.setDetails(productForm.toDetailsMap());
             request.setImage(productForm.getImage());
+            request.setLine(productForm.getLine());
 
-            managerService.addProductToOrganization(organizationId, request);
+            managerService.addProductToTemplate(templateId, request);
             redirectAttributes.addFlashAttribute("toastSuccess", "Продукт добавлен");
         } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("toastError", "Не удалось добавить продукт: " + ex.getMessage());
             redirectAttributes.addFlashAttribute("productForm", sanitizeProductForm(productForm));
         }
-        return redirectToOrganization(organizationId, "products");
+        return redirectToTemplate(templateId, "products");
     }
 
-    @PostMapping("/organizations/{organizationId}/groups/{groupId}/products")
-    public String attachProductToGroup(@PathVariable Long organizationId,
+    @PostMapping("/template/{templateId}/groups/{groupId}/products")
+    public String attachProductToGroup(@PathVariable Long templateId,
                                        @PathVariable Long groupId,
                                        @RequestParam("productId") Long productId,
                                        RedirectAttributes redirectAttributes) {
@@ -171,29 +172,29 @@ public class PortalController {
         } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("toastError", "Не удалось привязать продукт: " + ex.getMessage());
         }
-        return redirectToOrganization(organizationId, "products");
+        return redirectToTemplate(templateId, "products");
     }
 
-    @GetMapping("/organizations/{organizationId}/groups/{groupId}")
-    public String viewGroup(@PathVariable Long organizationId,
+    @GetMapping("/template/{templateId}/groups/{groupId}")
+    public String viewGroup(@PathVariable Long templateId,
                             @PathVariable Long groupId,
                             Model model,
                             @ModelAttribute("toastError") String toastError,
                             @ModelAttribute("toastSuccess") String toastSuccess) {
-        Organization organization = organizationService.getById(organizationId);
-        if (organization == null) {
+        Template template = templateService.getById(templateId);
+        if (template == null) {
             return "redirect:/";
         }
         var group = groupService.getById(groupId);
-        if (group == null || !group.getOrganization().getId().equals(organizationId)) {
-            return redirectToOrganization(organizationId, "products");
+        if (group == null || !group.getTemplate().getId().equals(templateId)) {
+            return redirectToTemplate(templateId, "products");
         }
 
         GetProductsByGroupResponse productsResponse = managerService.getProductsByGroup(groupId);
         List<ProductDto> products = productsResponse.getProducts() != null ? productsResponse.getProducts() : List.of();
-        List<ProductDto> allProducts = managerService.getProductsForOrganization(organizationId);
+        List<ProductDto> allProducts = managerService.getProductsForTemplate(templateId);
 
-        model.addAttribute("organization", organization);
+        model.addAttribute("template", template);
         model.addAttribute("group", group);
         model.addAttribute("products", products);
         model.addAttribute("allProducts", allProducts);
@@ -217,8 +218,8 @@ public class PortalController {
         return productsCount;
     }
 
-    private String redirectToOrganization(Long organizationId, String tab) {
-        return "redirect:/organizations/" + organizationId + "?tab=" + normalizeTab(tab);
+    private String redirectToTemplate(Long templateId, String tab) {
+        return "redirect:/template/" + templateId + "?tab=" + normalizeTab(tab);
     }
 
     private String normalizeTab(String tab) {
@@ -227,7 +228,7 @@ public class PortalController {
 
     private ProductForm sanitizeProductForm(ProductForm source) {
         ProductForm clone = new ProductForm();
-        clone.setOrganizationId(source.getOrganizationId());
+        clone.setTemplateId(source.getTemplateId());
         clone.setName(source.getName());
         clone.setDescription(source.getDescription());
         if (source.getDetails() != null) {

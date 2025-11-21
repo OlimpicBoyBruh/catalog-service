@@ -14,10 +14,11 @@ import java.util.Map;
 @Getter
 @Setter
 public class ProductForm {
-    private Long organizationId;
+    private Long templateId;
     private String name;
     private String description;
     private BigDecimal basePrice;
+    private String line;
     private List<DetailRow> details = new ArrayList<>();
     private MultipartFile image;
 

@@ -22,11 +22,11 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "organizations")
-public class Organization {
+@Table(name = "template")
+public class Template {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "organizations_seq")
-    @SequenceGenerator(name = "organizations_seq", sequenceName = "organizations_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "template_seq")
+    @SequenceGenerator(name = "template_seq", sequenceName = "template_id_seq", allocationSize = 1)
     private Long id;
 
     @Column(unique = true)
@@ -36,7 +36,7 @@ public class Organization {
 
     private String description;
 
-    @OneToMany( mappedBy =  "organization",fetch = FetchType.LAZY)
+    @OneToMany( mappedBy =  "template",fetch = FetchType.LAZY)
     private List<Group> groups;
 
     @CreationTimestamp

@@ -41,6 +41,7 @@ public class Product {
 
     @Column(length = 500)
     private String imageUrl;
+    private String line;
 
     private Boolean isActive = true;
 
@@ -49,8 +50,8 @@ public class Product {
     private Map<String,String> details;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
+    @JoinColumn(name = "template_id", nullable = false)
+    private Template template;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

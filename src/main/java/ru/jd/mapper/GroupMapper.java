@@ -4,18 +4,19 @@ import lombok.NoArgsConstructor;
 import ru.jd.model.dto.group.CreateGroupRequest;
 import ru.jd.model.dto.group.GroupDto;
 import ru.jd.model.entity.Group;
-import ru.jd.model.entity.Organization;
+import ru.jd.model.entity.Template;
 
 import java.util.List;
 
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class GroupMapper {
-    public static Group toEntity(CreateGroupRequest createGroupRequest, Organization organization) {
+    public static Group toEntity(CreateGroupRequest createGroupRequest, Template template) {
         Group group = new Group();
 
         group.setName(createGroupRequest.getName());
         group.setDescription(createGroupRequest.getDescription());
-        group.setOrganization(organization);
+        group.setTemplate(template);
+        group.setDisplayDetails(createGroupRequest.getDisplayDetails());
 
         return group;
     }
@@ -26,7 +27,7 @@ public class GroupMapper {
                         new GroupDto(group.getId(),
                                 group.getName(),
                                 group.getDescription(),
-                                group.getSubgroups(),
+                                group.getDisplayDetails(),
                                 group.getCreatedAt()))
                 .toList();
     }
